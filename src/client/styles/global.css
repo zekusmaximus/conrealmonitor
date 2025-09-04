@@ -1,0 +1,49 @@
+/* Retro-futuristic styling for Consensus Reality Monitor, evoking 1970s sci-fi. */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+:root {
+  --primary-bg: #0F172A;
+  --accent-color: #FBBF24;
+  --text-color: #E2E8F0;
+  --highlight: #22D3EE;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--primary-bg);
+  color: var(--text-color);
+  font-family: 'Roboto Mono', monospace;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Orbitron', sans-serif;
+  color: var(--accent-color);
+}
+
+.logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--highlight);
+  text-shadow: 0 0 10px var(--highlight);
+  animation: glow 2s ease-in-out infinite alternate;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 10px var(--highlight);
+  }
+  to {
+    text-shadow: 0 0 20px var(--highlight), 0 0 30px var(--highlight);
+  }
+}
