@@ -1,0 +1,16 @@
+{
+  "name": "Consensus Reality Monitor",
+  "short_name": "CRM-1970",
+  "description": "Monitor and analyze consensus realities",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ff00",
+  "icons": [
+    {
+      "src": "/snoo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

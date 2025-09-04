@@ -17,4 +17,15 @@ export default defineConfig({
       },
     },
   },
+  // Disable service worker to prevent no-op fetch handler
+  server: {
+    fs: {
+      // Allow serving files from one level up to the project root
+      allow: ['../../']
+    }
+  },
+  // Prevent Vite from generating service worker
+  worker: {
+    format: 'es'
+  }
 });

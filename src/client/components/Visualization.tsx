@@ -1,7 +1,7 @@
 // Checkpoint: Test with devvit playtest in private sub. Verify D3 visualization rendering and data fetching.
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { GroupData } from '../../shared/types/api';
+import { GroupData, GroupDataResponse } from '../../shared/types/api';
 
 // Props interface for the Visualization component
 interface VisualizationProps {
@@ -14,6 +14,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   // State for fetched data, loading, and error handling
+  const [response, setResponse] = useState<GroupDataResponse | null>(null);
   const [data, setData] = useState<GroupData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +28,21 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
       try {
         const response = await fetch(`/internal/group-data/${groupId}`);
         if (!response.ok) throw new Error('Failed to fetch group data');
-        const groupData: GroupData = await response.json();
+        const groupDataResponse: GroupDataResponse = await response.json();
+        setResponse(groupDataResponse);
+        // Convert to GroupData for visualization
+        const now = new Date().toISOString();
+        const groupData: GroupData = {
+          consensus: [{ time: now, value: 1 - groupDataResponse.fragmentation }],
+          fragments: groupDataResponse.fragmentedRealities.map((content, index) => ({
+            id: index.toString(),
+            time: now,
+            userCount: 1,
+            branch: index % 3,
+          })),
+        };
         setData(groupData);
+        setFragmentation(groupDataResponse.fragmentation);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error occurred');
       } finally {
@@ -41,11 +55,6 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   // Render the D3 visualization with dynamic animations
   useEffect(() => {
     if (!data || !svgRef.current) return;
-
-    // Calculate fragmentation for glitch effect
-    const totalPoints = data.consensus.length + data.fragments.length;
-    const fragScore = totalPoints > 0 ? data.fragments.length / totalPoints : 0;
-    setFragmentation(fragScore);
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove(); // Clear previous render
@@ -84,7 +93,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
       .append('path')
       .datum(data.consensus)
       .attr('fill', 'none')
-      .attr('stroke', 'var(--highlight)')
+      .attr('stroke', 'var(--accent-color)')
       .attr('stroke-width', 2)
       .attr('d', consensusLine)
       .attr('aria-label', 'Consensus reality timeline line');
@@ -95,7 +104,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
       .attr('stroke-dasharray', pathLength)
       .attr('stroke-dashoffset', pathLength)
       .transition()
-      .duration(1000)
+      .duration(500)
       .delay(500)
       .attr('stroke-dashoffset', 0);
 
@@ -110,22 +119,57 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
           .attr('transform', `translate(${margin.left},${margin.top})`);
 
         const line = g.append('line')
-          .attr('x1', xScale(new Date(fragment.time)))
-          .attr('y1', branchY(index))
-          .attr('x2', xScale(new Date(fragment.time)))
-          .attr('y2', branchY(index)) // Start at same Y for growth animation
-          .attr('stroke', 'var(--accent-color)')
-          .attr('stroke-width', thicknessScale(fragment.userCount))
-          .attr('aria-label', `Fragment branch ${index + 1} at ${new Date(fragment.time).toLocaleString()} with ${fragment.userCount} users`);
+           .attr('x1', xScale(new Date(fragment.time)))
+           .attr('y1', branchY(index))
+           .attr('x2', xScale(new Date(fragment.time)))
+           .attr('y2', branchY(index)) // Start at same Y for growth animation
+           .attr('stroke', 'var(--highlight)')
+           .attr('stroke-width', thicknessScale(fragment.userCount))
+           .attr('aria-label', `Fragment branch ${index + 1} at ${new Date(fragment.time).toLocaleString()} with ${fragment.userCount} users`)
+           .attr('tabindex', '0');
 
-        // Add hover tooltip with full fragment text
-        line.append('title').text(fragment.id);
+        // Add hover, touch, and keyboard tooltip
+        const tooltip = d3.select('#tooltip');
+        line.on('mouseover', function(event) {
+             tooltip.classed('visible', true)
+               .style('left', (event.pageX + 10) + 'px')
+               .style('top', (event.pageY - 10) + 'px')
+               .text(fragment.id);
+           })
+           .on('mouseout', function() {
+             tooltip.classed('visible', false);
+           })
+           .on('focus', function(event) {
+             const rect = this.getBoundingClientRect();
+             tooltip.classed('visible', true)
+               .style('left', (rect.left + rect.width / 2) + 'px')
+               .style('top', (rect.top - 10) + 'px')
+               .text(fragment.id);
+           })
+           .on('blur', function() {
+             tooltip.classed('visible', false);
+           })
+           .on('touchstart', function(event) {
+             event.preventDefault();
+             const touch = event.touches[0];
+             tooltip.classed('visible', true)
+               .style('left', (touch.pageX + 10) + 'px')
+               .style('top', (touch.pageY - 10) + 'px')
+               .text(fragment.id);
+           });
+
+        // Hide tooltip on touch outside
+        d3.select('body').on('touchstart', function(event) {
+          if (!event.target.closest('line')) {
+            tooltip.classed('visible', false);
+          }
+        });
 
         // Animate branch growth through the reality matrix
         line.transition()
-          .duration(500)
-          .delay(500 + index * 200) // Staggered delay for each branch
-          .attr('y2', branchY(index) + 20);
+           .duration(500)
+           .delay(500 + index * 200) // Staggered delay for each branch
+           .attr('y2', branchY(index) + 20);
       });
     });
 
@@ -166,19 +210,40 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
     <>
       <style>{`
         .glitch {
-          animation: shake 2s infinite;
+          animation: shake 2s;
+          filter: contrast(1.2) brightness(1.1) hue-rotate(5deg);
+          will-change: transform;
         }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           10%, 30%, 50%, 70%, 90% { transform: translateX(-1px); }
           20%, 40%, 60%, 80% { transform: translateX(1px); }
         }
+        #tooltip {
+          position: absolute;
+          background: var(--primary-bg);
+          border: 2px solid var(--accent-color);
+          color: var(--text-color);
+          padding: 8px;
+          border-radius: 4px;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.2s;
+          font-size: 12px;
+          max-width: 200px;
+          word-wrap: break-word;
+        }
+        #tooltip.visible {
+          opacity: 1;
+        }
       `}</style>
-      <div className={`scanlines ${fragmentation > 0.8 ? 'glitch' : ''}`} style={{ width: '100%', maxWidth: '600px', margin: '0 auto' }}>
+      <div className={`scanlines ${fragmentation > 0.8 ? 'glitch' : ''}`} style={{ width: '100%', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+        <div id="tooltip"></div>
         <svg
           ref={svgRef}
           width="100%"
           height="400"
+          viewBox="0 0 600 400"
           role="img"
           aria-label="Animated reality fracture timeline"
         />

@@ -1,5 +1,6 @@
 // Checkpoint: Test with devvit playtest in private sub. Verify server initialization and endpoint responses.
 import express from 'express';
+import { randomUUID } from 'crypto';
 import { InitResponse, IncrementResponse, DecrementResponse } from '../shared/types/api';
 import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
@@ -25,6 +26,9 @@ export function calculateFragmentation(strings: string[]): number {
   const avgSimilarity = totalSimilarity / pairs;
   const fragmentation = 1 - avgSimilarity;
   console.log(`🎯 Average similarity: ${avgSimilarity}, Fragmentation: ${fragmentation}`);
+  if (fragmentation > 0.5) {
+    console.log(`Reality fracture detected at index ${fragmentation.toFixed(2)}!`);
+  }
   return fragmentation;
 }
 
@@ -192,21 +196,23 @@ router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
 
 router.post('/internal/groups', async (req, res): Promise<void> => {
   try {
-    const { groupId, strings } = req.body;
-    if (!groupId || !Array.isArray(strings)) {
-      console.error('🚫 Invalid request: groupId and strings array required');
+    const { strings } = req.body;
+    if (!Array.isArray(strings)) {
+      console.error('🚫 Invalid request: strings array required');
       res.status(400).json({
         status: 'error',
-        message: 'groupId and strings array are required',
+        message: 'strings array is required',
       });
       return;
     }
-    console.log(`📝 Storing group ${groupId} with ${strings.length} strings`);
+    const groupId = randomUUID();
+    console.log(`📝 Creating new group ${groupId} with ${strings.length} strings`);
     await redis.set(`group:${groupId}`, JSON.stringify(strings));
     console.log('✅ Group stored successfully');
     res.json({
       status: 'success',
-      message: `Group ${groupId} stored`,
+      uuid: groupId,
+      alert: `New group created with UUID: ${groupId}`,
     });
   } catch (error) {
     console.error(`💥 Error storing group: ${error}`);
@@ -219,14 +225,20 @@ router.post('/internal/groups', async (req, res): Promise<void> => {
 
 router.post('/internal/logs', async (req, res): Promise<void> => {
   try {
-    const { logId, data, groupId } = req.body;
-    if (!logId || !data) {
-      console.error('🚫 Invalid request: logId and data required');
+    const body = req.body;
+    let logId = body.logId;
+    const data = body.data;
+    const groupId = body.groupId;
+    if (!data) {
+      console.error('🚫 Invalid request: data required');
       res.status(400).json({
         status: 'error',
-        message: 'logId and data are required',
+        message: 'data is required',
       });
       return;
+    }
+    if (!logId) {
+      logId = randomUUID();
     }
     console.log(`📝 Storing log ${logId}`);
     await redis.set(`log:${logId}`, JSON.stringify(data));
@@ -234,6 +246,7 @@ router.post('/internal/logs', async (req, res): Promise<void> => {
     res.json({
       status: 'success',
       message: `Log ${logId} stored`,
+      logId,
     });
     // Trigger flair update if groupId provided - syncing reality after log entry
     if (groupId) {
@@ -280,10 +293,16 @@ router.get('/internal/group-data/:groupId', async (req, res): Promise<void> => {
     console.log(`📊 Calculating fragmentation for ${strings.length} strings`);
     const fragmentation = calculateFragmentation(strings);
     console.log('✅ Fragmentation calculated successfully');
+    // Determine consensus reality text (most frequent string or first)
+    const consensusRealityText = strings.length > 0 ? strings[0] : '';
+    // Fragmented realities: up to 3 strings
+    const fragmentedRealities = strings.slice(0, 3);
     res.json({
       status: 'success',
       groupId,
       fragmentation,
+      consensusRealityText,
+      fragmentedRealities,
       stringCount: strings.length,
     });
   } catch (error) {
@@ -310,6 +329,28 @@ router.post('/internal/set-flair/:groupId', async (req, res): Promise<void> => {
   } catch (error) {
     console.error(`💥 Error in flair endpoint: ${error}`);
     res.status(500).json({ error: 'Flair update failed - check mod permissions' });
+  }
+});
+
+router.post('/internal/share-group/:groupId', async (req, res): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    if (!groupId) {
+      console.error('🚫 Invalid request: groupId required for share');
+      res.status(400).json({ error: 'groupId required' });
+      return;
+    }
+    console.log(`📢 Sharing group ${groupId} on Reddit`);
+    const post = await reddit.submitPost({
+      subredditName: 'conrealmonitor_dev',
+      title: 'Join our Reality Monitoring Group!',
+      text: `Join our reality monitoring group with UUID: ${groupId}`,
+    });
+    console.log('✅ Share post created successfully');
+    res.json({ status: 'success', postId: post.id });
+  } catch (error) {
+    console.error(`💥 Error creating share post: ${error}`);
+    res.status(500).json({ error: 'Failed to create share post' });
   }
 });
 

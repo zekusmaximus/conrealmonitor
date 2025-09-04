@@ -16,7 +16,7 @@
 }
 
 body {
-  background-color: var(--primary-bg);
+  background: linear-gradient(to bottom, var(--primary-bg), var(--highlight));
   color: var(--text-color);
   font-family: 'Roboto Mono', monospace;
   line-height: 1.6;
@@ -97,4 +97,11 @@ h1, h2, h3, h4, h5, h6 {
     transparent 2px
   );
   pointer-events: none;
+}
+
+.neon-underline {
+  text-decoration: underline;
+  text-decoration-color: var(--highlight);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }

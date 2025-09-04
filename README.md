@@ -26,6 +26,12 @@ A starter to build web applications on Reddit's developer platform
 - `npm run login`: Logs your CLI into Reddit
 - `npm run check`: Type checks, lints, and prettifies your app
 
+## Known Issues
+
+- **Tracking Resources Blocked**: Some users may experience `ERR_BLOCKED_BY_CLIENT` errors for tracking resources due to ad blockers or privacy extensions. This is from Reddit's platform and does not affect app functionality.
+- **Sentry Rate Limiting**: If errors occur frequently, Sentry may return 429 errors. The app includes retry logic to handle this.
+- **Devvit Gateway Errors**: Occasional 400 errors from the Devvit gateway may occur due to network issues or server load.
+
 ## Cursor Integration
 
 This template comes with a pre-configured cursor environment. To get started, [download cursor](https://www.cursor.com/downloads) and enable the `devvit-mcp` when prompted.

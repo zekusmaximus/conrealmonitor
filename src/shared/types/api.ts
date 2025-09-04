@@ -33,3 +33,12 @@ export interface GroupData {
   consensus: ConsensusPoint[];
   fragments: FragmentBranch[];
 }
+
+export interface GroupDataResponse {
+  status: 'success';
+  groupId: string;
+  fragmentation: number;
+  consensusRealityText: string;
+  fragmentedRealities: string[];
+  stringCount: number;
+}

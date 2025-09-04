@@ -1,5 +1,7 @@
 // Checkpoint: Test with devvit playtest in private sub. Verify dashboard data loading and UI rendering.
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { GroupDataResponse } from '../../shared/types/api';
 
 interface Fragment {
   id: string;
@@ -14,29 +16,32 @@ interface Context {
 }
 
 const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
+  const [searchParams] = useSearchParams();
+  const groupId = searchParams.get('groupId') || localStorage.getItem('groupId') || 'default-group';
   const [fragmentationIndex, setFragmentationIndex] = useState<number | null>(null);
   const [consensus, setConsensus] = useState<number | null>(null);
   const [fragments, setFragments] = useState<Fragment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [score, setScore] = useState(0);
-  const [badges, setBadges] = useState<string[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setFragmentationIndex(0.75);
-        setConsensus(0.85);
-        setFragments([
-          { id: '1', content: 'Reality is subjective.', author: 'User1' },
-          { id: '2', content: 'Consensus builds truth.', author: 'User2' },
-        ]);
-        setScore(100);
-        setBadges(['Reality Seeker', 'Consensus Builder', 'Fragment Collector']);
+        const response = await fetch(`/internal/group-data/${groupId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch group data');
+        }
+        const data: GroupDataResponse = await response.json();
+        setFragmentationIndex(data.fragmentation);
+        setConsensus(1 - data.fragmentation); // Assuming consensus is inverse of fragmentation
+        setFragments(data.fragmentedRealities.slice(0, 3).map((content, index) => ({
+          id: index.toString(),
+          content,
+          author: 'Anonymous',
+        })));
       } catch (err) {
         setError('Failed to load dashboard data.');
       } finally {
@@ -44,54 +49,29 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
       }
     };
     void fetchData();
-  }, []);
+  }, [groupId]);
 
   const handleShareGroup = async () => {
-    if (!context?.reddit?.submitPost) {
-      setError('Reddit context not available.');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      await context.reddit.submitPost({
-        title: 'Join our Reality Monitoring Group!',
-        text: 'Dive into our parallel universe—join now! Group UUID: default-group',
-      });
+      const response = await fetch(`/internal/share-group/${groupId}`, { method: 'POST' });
+      if (!response.ok) {
+        throw new Error('Failed to share group');
+      }
+      const data = await response.json();
+      if (data.status === 'success') {
+        setToast({ message: 'Group shared to the multiverse!', type: 'success' });
+      } else {
+        throw new Error(data.error || 'Failed to share group');
+      }
     } catch (err) {
-      setError('Failed to share group post.');
+      setToast({ message: 'Reality rejected by the matrix!', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Flair update: bridging realities across the multiverse
-  const handleUpdateFlair = async () => {
-    console.log('Flair update button clicked');
-    setLoading(true);
-    setError(null);
-    try {
-      // Quantum leap to update flair in the subreddit dimension
-      const response = await fetch('/internal/set-flair/default-group', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Assuming no body needed, or add if required
-      });
-      if (!response.ok) {
-        throw new Error('Flair update failed');
-      }
-      // Success: Flair synced to the multiverse!
-      alert('Flair synced to the multiverse!');
-    } catch (err) {
-      // Error: Flair lost in a reality rift!
-      alert('Flair lost in a reality rift!');
-      setError('Failed to update flair.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -111,21 +91,18 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
           Consensus Dashboard
         </h1>
 
-        <div className="mb-6 text-center text-[var(--accent-color)]">
-          <p className="font-roboto-mono">Gamification Score: {score} points</p>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-[var(--primary-bg)] border border-[var(--accent-color)] rounded-lg p-4 glow-card">
             <h2 className="text-xl font-orbitron text-[var(--highlight)] mb-2">Fragmentation Index</h2>
-            <p className="text-2xl font-roboto-mono text-[var(--accent-color)]">
-              {fragmentationIndex !== null ? `${(fragmentationIndex * 100).toFixed(1)}%` : 'N/A'}
+            <p className="text-2xl font-orbitron text-[var(--highlight)] text-center">
+              {fragmentationIndex !== null ? fragmentationIndex.toFixed(2) : 'N/A'}
             </p>
             <p className="text-sm font-roboto-mono mt-2">Measure of reality divergence</p>
           </div>
 
           <div className="bg-[var(--primary-bg)] border border-[var(--accent-color)] rounded-lg p-4 glow-card">
-            <h2 className="text-xl font-orbitron text-[var(--highlight)] mb-2">Consensus Level</h2>
+            <h2 className="text-xl font-roboto-mono text-[var(--highlight)] mb-2">Consensus Reality</h2>
             <p className="text-2xl font-roboto-mono text-[var(--accent-color)]">
               {consensus !== null ? `${(consensus * 100).toFixed(1)}%` : 'N/A'}
             </p>
@@ -142,38 +119,23 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-2xl font-orbitron text-[var(--highlight)] mb-4">Recent Fragments</h2>
+          <h2 className="text-2xl font-orbitron text-[var(--highlight)] mb-4">Fragmented Realities</h2>
           <div className="space-y-4">
             {fragments.map((fragment) => (
               <div key={fragment.id} className="bg-[var(--primary-bg)] border border-[var(--accent-color)] rounded-lg p-4 glow-card">
-                <p className="font-roboto-mono mb-2">{fragment.content}</p>
+                <p className="font-roboto-mono mb-2 underline decoration-[var(--highlight)] decoration-2">{fragment.content}</p>
                 <p className="text-sm text-[var(--accent-color)]">- {fragment.author}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div>
-          <h2 className="text-2xl font-orbitron text-[var(--highlight)] mb-4">Fun Badges</h2>
-          <div className="flex flex-wrap gap-4">
-            {badges.map((badge, index) => (
-              <div
-                key={index}
-                className="bg-[var(--primary-bg)] border border-[var(--highlight)] rounded-lg px-4 py-2 glow-badge"
-                role="img"
-                aria-label={`Badge: ${badge}`}
-              >
-                <span className="font-orbitron text-[var(--highlight)]">{badge}</span>
-              </div>
-            ))}
-          </div>
-        </div>
 
         <div className="mt-8 text-center">
           <button
             onClick={handleShareGroup}
-            disabled={loading || !context?.reddit?.submitPost}
-            className="px-6 py-3 bg-[var(--highlight)] text-[var(--primary-bg)] font-orbitron text-lg rounded-lg hover:bg-opacity-80 transition-all duration-300 glow-button disabled:opacity-50"
+            disabled={loading}
+            className="px-6 py-3 bg-[var(--accent-color)] text-[var(--primary-bg)] font-orbitron text-lg rounded-lg hover:shadow-[0_0_20px_var(--accent-color)] transition-all duration-300 glow-button disabled:opacity-50"
             aria-label="Share group on Reddit"
           >
             {loading ? (
@@ -187,31 +149,15 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
           </button>
         </div>
 
-        <div className="mt-4 text-center">
-          <button
-            onClick={handleUpdateFlair}
-            disabled={loading}
-            className="px-6 py-3 bg-[var(--accent-color)] text-[var(--primary-bg)] font-orbitron text-lg rounded-lg hover:shadow-[0_0_20px_var(--accent-color)] transition-all duration-300 glow-button disabled:opacity-50"
-            aria-label="Update my flair"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="spinner mr-2"></div>
-                Updating Flair...
-              </div>
-            ) : (
-              'Update My Flair'
-            )}
-          </button>
-        </div>
-
-        {error && (
+        {toast && (
           <div
-            className="mt-8 bg-red-600 text-white px-4 py-2 rounded-lg"
+            className={`mt-8 px-4 py-2 rounded-lg text-center font-orbitron text-lg ${
+              toast.type === 'success' ? 'bg-green-400 text-black' : 'bg-red-400 text-white'
+            }`}
             role="alert"
             aria-live="assertive"
           >
-            {error}
+            {toast.message}
           </div>
         )}
       </div>
