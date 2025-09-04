@@ -34,6 +34,23 @@ export default defineConfig([
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['src/server/__tests__/**/*.{ts,tsx,mjs,cjs,js}'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      globals: {
+        ...globals.node,
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+      },
+    },
+  },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['src/client/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2023,
@@ -65,7 +82,7 @@ export default defineConfig([
     ],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.json', './src/*/tsconfig.json'],
+        project: ['./src/*/tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
