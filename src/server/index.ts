@@ -28,6 +28,47 @@ export function calculateFragmentation(strings: string[]): number {
   return fragmentation;
 }
 
+// Quantum flair synchronization function - bridging user reality with subreddit cosmos
+async function setFlairForGroup(groupId: string): Promise<void> {
+  console.log(`🚀 Initiating flair sync for group ${groupId} in the multiverse`);
+  try {
+    const data = await redis.get(`group:${groupId}`);
+    if (!data) {
+      console.log('🌌 No data found for this reality fragment');
+      return;
+    }
+    const strings: string[] = JSON.parse(data);
+    const fragmentation = calculateFragmentation(strings);
+    const index = fragmentation.toFixed(2);
+    let color: string;
+    if (fragmentation < 0.3) {
+      color = '#22C55E'; // Green for stable realities
+    } else if (fragmentation <= 0.7) {
+      color = '#FBBF24'; // Yellow for fluctuating dimensions
+    } else {
+      color = '#EF4444'; // Red for chaotic multiverses
+    }
+    const username = await reddit.getCurrentUsername();
+    if (!username) {
+      console.log('👤 No user detected in this timeline');
+      return;
+    }
+    const subreddit = context.subredditName || 'conrealmonitor_dev';
+    // Syncing flair to the multiverse
+    await reddit.setUserFlair({
+      subredditName: subreddit,
+      username,
+      text: `Reality Index: ${index}`,
+      backgroundColor: color,
+    });
+    console.log(`✨ Flair synced successfully for ${username} in ${subreddit}`);
+    console.log(`🔍 Flair details: fragmentation ${fragmentation}, color ${color}, text "Reality Index: ${index}"`);
+  } catch (error) {
+    console.error(`💥 Flair sync failed: ${error}`);
+    throw error; // Re-throw for endpoint handling
+  }
+}
+
 const app = express();
 
 // Middleware for JSON body parsing
@@ -178,7 +219,7 @@ router.post('/internal/groups', async (req, res): Promise<void> => {
 
 router.post('/internal/logs', async (req, res): Promise<void> => {
   try {
-    const { logId, data } = req.body;
+    const { logId, data, groupId } = req.body;
     if (!logId || !data) {
       console.error('🚫 Invalid request: logId and data required');
       res.status(400).json({
@@ -194,6 +235,17 @@ router.post('/internal/logs', async (req, res): Promise<void> => {
       status: 'success',
       message: `Log ${logId} stored`,
     });
+    // Trigger flair update if groupId provided - syncing reality after log entry
+    if (groupId) {
+      try {
+        console.log(`🔄 Auto-triggering flair update for group ${groupId} post-log`);
+        await setFlairForGroup(groupId);
+        console.log('✅ Flair auto-updated after log submission');
+      } catch (flairError) {
+        console.error(`💥 Failed to auto-update flair: ${flairError}`);
+        // Don't fail the log submission due to flair error
+      }
+    }
   } catch (error) {
     console.error(`💥 Error storing log: ${error}`);
     res.status(500).json({
@@ -240,6 +292,24 @@ router.get('/internal/group-data/:groupId', async (req, res): Promise<void> => {
       status: 'error',
       message: 'Failed to fetch group data',
     });
+  }
+});
+
+router.post('/internal/set-flair/:groupId', async (req, res): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    if (!groupId) {
+      console.error('🚫 Invalid request: groupId required for flair sync');
+      res.status(400).json({ error: 'groupId required' });
+      return;
+    }
+    console.log(`🔮 Triggering flair update for group ${groupId}`);
+    await setFlairForGroup(groupId);
+    console.log('✅ Flair update completed');
+    res.json({ status: 'success', message: 'Flair updated successfully' });
+  } catch (error) {
+    console.error(`💥 Error in flair endpoint: ${error}`);
+    res.status(500).json({ error: 'Flair update failed - check mod permissions' });
   }
 });
 

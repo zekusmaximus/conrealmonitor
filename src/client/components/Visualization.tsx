@@ -17,6 +17,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   const [data, setData] = useState<GroupData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fragmentation, setFragmentation] = useState(0);
 
   // Fetch data from the API endpoint
   useEffect(() => {
@@ -37,9 +38,14 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
     void fetchData();
   }, [groupId]);
 
-  // Render the D3 visualization
+  // Render the D3 visualization with dynamic animations
   useEffect(() => {
     if (!data || !svgRef.current) return;
+
+    // Calculate fragmentation for glitch effect
+    const totalPoints = data.consensus.length + data.fragments.length;
+    const fragScore = totalPoints > 0 ? data.fragments.length / totalPoints : 0;
+    setFragmentation(fragScore);
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove(); // Clear previous render
@@ -63,13 +69,17 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
       return branchHeight * (branch + 1);
     };
 
-    // Draw central line for consensus reality
+    // Limit to 3 branches: sort by total user count
+    const branchTotals = d3.rollup(data.fragments, v => d3.sum(v, d => d.userCount), d => d.branch);
+    const topBranches = Array.from(branchTotals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(d => d[0]);
+
+    // Draw central line for consensus reality with animation
     const consensusLine = d3.line<GroupData['consensus'][0]>()
       .x(d => xScale(new Date(d.time)))
       .y(d => yScale(d.value))
       .curve(d3.curveMonotoneX);
 
-    svg.append('g')
+    const consensusPath = svg.append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
       .append('path')
       .datum(data.consensus)
@@ -79,23 +89,43 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
       .attr('d', consensusLine)
       .attr('aria-label', 'Consensus reality timeline line');
 
-    // Draw fragment branches with thickness based on user count
-    const fragmentGroups = d3.group(data.fragments, d => d.branch);
-    fragmentGroups.forEach((fragments, branch) => {
+    // Animate consensus path drawing
+    const pathLength = consensusPath.node()?.getTotalLength() || 0;
+    consensusPath
+      .attr('stroke-dasharray', pathLength)
+      .attr('stroke-dashoffset', pathLength)
+      .transition()
+      .duration(1000)
+      .delay(500)
+      .attr('stroke-dashoffset', 0);
+
+    // Draw fragment branches with growth animations
+    topBranches.forEach((branch, index) => {
+      const fragments = data.fragments.filter(d => d.branch === branch);
       const maxUserCount = d3.max(fragments, d => d.userCount) || 1;
       const thicknessScale = d3.scaleLinear().domain([0, maxUserCount]).range([1, 10]);
 
       fragments.forEach(fragment => {
-        svg.append('g')
-          .attr('transform', `translate(${margin.left},${margin.top})`)
-          .append('line')
+        const g = svg.append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const line = g.append('line')
           .attr('x1', xScale(new Date(fragment.time)))
-          .attr('y1', branchY(branch))
+          .attr('y1', branchY(index))
           .attr('x2', xScale(new Date(fragment.time)))
-          .attr('y2', branchY(branch) + 20) // Vertical segment for branch
+          .attr('y2', branchY(index)) // Start at same Y for growth animation
           .attr('stroke', 'var(--accent-color)')
           .attr('stroke-width', thicknessScale(fragment.userCount))
-          .attr('aria-label', `Fragment branch ${branch + 1} at ${new Date(fragment.time).toLocaleString()} with ${fragment.userCount} users`);
+          .attr('aria-label', `Fragment branch ${index + 1} at ${new Date(fragment.time).toLocaleString()} with ${fragment.userCount} users`);
+
+        // Add hover tooltip with full fragment text
+        line.append('title').text(fragment.id);
+
+        // Animate branch growth through the reality matrix
+        line.transition()
+          .duration(500)
+          .delay(500 + index * 200) // Staggered delay for each branch
+          .attr('y2', branchY(index) + 20);
       });
     });
 
@@ -131,18 +161,31 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
     );
   }
 
-  // Main render with scanlines filter applied
+  // Main render with scanlines filter and glitch effect for high fragmentation
   return (
-    <div className="scanlines" style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
-      <svg
-        ref={svgRef}
-        width="100%"
-        height="400"
-        role="img"
-        aria-label="Horizontal timeline visualization showing consensus reality and up to 3 fragment branches"
-      />
-    </div>
+    <>
+      <style>{`
+        .glitch {
+          animation: shake 2s infinite;
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-1px); }
+          20%, 40%, 60%, 80% { transform: translateX(1px); }
+        }
+      `}</style>
+      <div className={`scanlines ${fragmentation > 0.8 ? 'glitch' : ''}`} style={{ width: '100%', maxWidth: '600px', margin: '0 auto' }}>
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="400"
+          role="img"
+          aria-label="Animated reality fracture timeline"
+        />
+      </div>
+    </>
   );
 };
 
+// Checkpoint: Test animations for smoothness in devvit playtest.
 export default Visualization;

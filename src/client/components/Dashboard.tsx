@@ -65,6 +65,34 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
     }
   };
 
+  // Flair update: bridging realities across the multiverse
+  const handleUpdateFlair = async () => {
+    console.log('Flair update button clicked');
+    setLoading(true);
+    setError(null);
+    try {
+      // Quantum leap to update flair in the subreddit dimension
+      const response = await fetch('/internal/set-flair/default-group', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Assuming no body needed, or add if required
+      });
+      if (!response.ok) {
+        throw new Error('Flair update failed');
+      }
+      // Success: Flair synced to the multiverse!
+      alert('Flair synced to the multiverse!');
+    } catch (err) {
+      // Error: Flair lost in a reality rift!
+      alert('Flair lost in a reality rift!');
+      setError('Failed to update flair.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--primary-bg)] text-[var(--text-color)]">
@@ -159,6 +187,24 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
           </button>
         </div>
 
+        <div className="mt-4 text-center">
+          <button
+            onClick={handleUpdateFlair}
+            disabled={loading}
+            className="px-6 py-3 bg-[var(--accent-color)] text-[var(--primary-bg)] font-orbitron text-lg rounded-lg hover:shadow-[0_0_20px_var(--accent-color)] transition-all duration-300 glow-button disabled:opacity-50"
+            aria-label="Update my flair"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="spinner mr-2"></div>
+                Updating Flair...
+              </div>
+            ) : (
+              'Update My Flair'
+            )}
+          </button>
+        </div>
+
         {error && (
           <div
             className="mt-8 bg-red-600 text-white px-4 py-2 rounded-lg"
@@ -173,4 +219,5 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
   );
 };
 
+// Checkpoint: Verify flair updates in subreddit.
 export default Dashboard;
