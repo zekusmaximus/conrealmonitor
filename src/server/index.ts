@@ -1,7 +1,32 @@
+// Checkpoint: Test with devvit playtest in private sub. Verify server initialization and endpoint responses.
 import express from 'express';
 import { InitResponse, IncrementResponse, DecrementResponse } from '../shared/types/api';
 import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
+import compareTwoStrings from 'string-similarity-js';
+
+export function calculateFragmentation(strings: string[]): number {
+  console.log('🧩 Calculating fragmentation like a puzzle master!');
+  const validStrings = strings.filter(s => typeof s === 'string' && s.length > 0);
+  if (validStrings.length < 2) {
+    console.log('🤏 Not enough valid strings for fragmentation analysis');
+    return 0;
+  }
+  let totalSimilarity = 0;
+  let pairs = 0;
+  for (let i = 0; i < validStrings.length; i++) {
+    for (let j = i + 1; j < validStrings.length; j++) {
+      const similarity = compareTwoStrings(validStrings[i]!, validStrings[j]!);
+      totalSimilarity += similarity;
+      pairs++;
+      console.log(`🔍 Comparing "${validStrings[i]}" and "${validStrings[j]}": ${similarity}`);
+    }
+  }
+  const avgSimilarity = totalSimilarity / pairs;
+  const fragmentation = 1 - avgSimilarity;
+  console.log(`🎯 Average similarity: ${avgSimilarity}, Fragmentation: ${fragmentation}`);
+  return fragmentation;
+}
 
 const app = express();
 
@@ -120,6 +145,100 @@ router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
     res.status(400).json({
       status: 'error',
       message: 'Failed to create post',
+    });
+  }
+});
+
+router.post('/internal/groups', async (req, res): Promise<void> => {
+  try {
+    const { groupId, strings } = req.body;
+    if (!groupId || !Array.isArray(strings)) {
+      console.error('🚫 Invalid request: groupId and strings array required');
+      res.status(400).json({
+        status: 'error',
+        message: 'groupId and strings array are required',
+      });
+      return;
+    }
+    console.log(`📝 Storing group ${groupId} with ${strings.length} strings`);
+    await redis.set(`group:${groupId}`, JSON.stringify(strings));
+    console.log('✅ Group stored successfully');
+    res.json({
+      status: 'success',
+      message: `Group ${groupId} stored`,
+    });
+  } catch (error) {
+    console.error(`💥 Error storing group: ${error}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to store group',
+    });
+  }
+});
+
+router.post('/internal/logs', async (req, res): Promise<void> => {
+  try {
+    const { logId, data } = req.body;
+    if (!logId || !data) {
+      console.error('🚫 Invalid request: logId and data required');
+      res.status(400).json({
+        status: 'error',
+        message: 'logId and data are required',
+      });
+      return;
+    }
+    console.log(`📝 Storing log ${logId}`);
+    await redis.set(`log:${logId}`, JSON.stringify(data));
+    console.log('✅ Log stored successfully');
+    res.json({
+      status: 'success',
+      message: `Log ${logId} stored`,
+    });
+  } catch (error) {
+    console.error(`💥 Error storing log: ${error}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to store log',
+    });
+  }
+});
+
+router.get('/internal/group-data/:groupId', async (req, res): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    if (!groupId) {
+      console.error('🚫 Invalid request: groupId required');
+      res.status(400).json({
+        status: 'error',
+        message: 'groupId is required',
+      });
+      return;
+    }
+    console.log(`🔍 Fetching group data for ${groupId}`);
+    const data = await redis.get(`group:${groupId}`);
+    if (!data) {
+      console.error('🚫 Group not found');
+      res.status(404).json({
+        status: 'error',
+        message: 'Group not found',
+      });
+      return;
+    }
+    const strings: string[] = JSON.parse(data);
+    console.log(`📊 Calculating fragmentation for ${strings.length} strings`);
+    const fragmentation = calculateFragmentation(strings);
+    console.log('✅ Fragmentation calculated successfully');
+    res.json({
+      status: 'success',
+      groupId,
+      fragmentation,
+      stringCount: strings.length,
+    });
+  } catch (error) {
+    console.error(`💥 Error fetching group data: ${error}`);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch group data',
     });
   }
 });

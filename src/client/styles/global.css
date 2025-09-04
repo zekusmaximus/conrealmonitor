@@ -47,3 +47,54 @@ h1, h2, h3, h4, h5, h6 {
     text-shadow: 0 0 20px var(--highlight), 0 0 30px var(--highlight);
   }
 }
+
+.glow-button {
+  box-shadow: 0 0 10px var(--accent-color);
+}
+
+.glow-button:hover {
+  box-shadow: 0 0 20px var(--accent-color);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--primary-bg);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.glow-card {
+  box-shadow: 0 0 15px var(--accent-color);
+}
+
+.glow-badge {
+  box-shadow: 0 0 10px var(--highlight);
+}
+
+.scanlines {
+  position: relative;
+}
+
+.scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+}
