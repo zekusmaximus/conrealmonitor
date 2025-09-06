@@ -14,7 +14,6 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   // State for fetched data, loading, and error handling
-  const [response, setResponse] = useState<GroupDataResponse | null>(null);
   const [data, setData] = useState<GroupData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,12 +28,11 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
         const response = await fetch(`/internal/group-data/${groupId}`);
         if (!response.ok) throw new Error('Failed to fetch group data');
         const groupDataResponse: GroupDataResponse = await response.json();
-        setResponse(groupDataResponse);
         // Convert to GroupData for visualization
         const now = new Date().toISOString();
         const groupData: GroupData = {
           consensus: [{ time: now, value: 1 - groupDataResponse.fragmentation }],
-          fragments: groupDataResponse.fragmentedRealities.map((content, index) => ({
+          fragments: groupDataResponse.fragmentedRealities.map((_, index) => ({
             id: index.toString(),
             time: now,
             userCount: 1,
@@ -139,7 +137,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
            .on('mouseout', function() {
              tooltip.classed('visible', false);
            })
-           .on('focus', function(event) {
+           .on('focus', function() {
              const rect = this.getBoundingClientRect();
              tooltip.classed('visible', true)
                .style('left', (rect.left + rect.width / 2) + 'px')

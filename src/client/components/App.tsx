@@ -34,30 +34,6 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Parse webbit_token from URL for Devvit context
-  const parseWebbitToken = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const webbitToken = urlParams.get('webbit_token') || hashParams.get('webbitToken');
-
-    if (webbitToken) {
-      try {
-        // Decode and parse the JWT token (simplified - in production, use proper JWT library)
-        const parts = webbitToken.split('.');
-        if (parts.length >= 2 && parts[1]) {
-          const payload = JSON.parse(atob(parts[1]));
-          console.log('Parsed Devvit context:', payload);
-          return payload;
-        }
-      } catch (error) {
-        console.warn('Failed to parse webbit_token:', error);
-      }
-    }
-    return null;
-  };
-
-  const devvitContext = parseWebbitToken();
-
   return (
     <BrowserRouter basename="/">
       <div className="logo">CRM-1970</div>

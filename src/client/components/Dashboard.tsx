@@ -9,26 +9,18 @@ interface Fragment {
   author: string;
 }
 
-interface Context {
-  reddit: {
-    submitPost: (options: { title: string; text: string }) => Promise<void>;
-  };
-}
-
-const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
+const Dashboard: React.FC = () => {
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get('groupId') || localStorage.getItem('groupId') || 'default-group';
   const [fragmentationIndex, setFragmentationIndex] = useState<number | null>(null);
   const [consensus, setConsensus] = useState<number | null>(null);
   const [fragments, setFragments] = useState<Fragment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setError(null);
       try {
         const response = await fetch(`/internal/group-data/${groupId}`);
         if (!response.ok) {
@@ -43,7 +35,7 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
           author: 'Anonymous',
         })));
       } catch (err) {
-        setError('Failed to load dashboard data.');
+        console.error('Failed to load dashboard data:', err);
       } finally {
         setLoading(false);
       }
@@ -53,7 +45,6 @@ const Dashboard: React.FC<{ context?: Context }> = ({ context }) => {
 
   const handleShareGroup = async () => {
     setLoading(true);
-    setError(null);
     try {
       const response = await fetch(`/internal/share-group/${groupId}`, { method: 'POST' });
       if (!response.ok) {
