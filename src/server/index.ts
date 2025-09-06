@@ -5,6 +5,7 @@ import { InitResponse, IncrementResponse, DecrementResponse } from '../shared/ty
 import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
 import compareTwoStrings from 'string-similarity-js';
+import dayjs from 'dayjs';
 
 export function calculateFragmentation(strings: string[]): number {
   console.log('🧩 Calculating fragmentation like a puzzle master!');
@@ -351,6 +352,72 @@ router.post('/internal/share-group/:groupId', async (req, res): Promise<void> =>
   } catch (error) {
     console.error(`💥 Error creating share post: ${error}`);
     res.status(500).json({ error: 'Failed to create share post' });
+  }
+});
+
+router.post('/internal/daily-report', async (_req, res): Promise<void> => {
+  try {
+    const date = dayjs().toISOString().split('T')[0];
+    // Get all group keys
+    // @ts-expect-error redis.keys is not typed but available
+    const groupKeys = (await redis.keys('group:*')) as string[];
+    const allStrings: string[] = [];
+    for (const key of groupKeys) {
+      const groupId = key.split(':')[1]!;
+      const logsKey = `logs:${groupId}:${date}`;
+      const logsData = await redis.get(logsKey);
+      if (logsData) {
+        const strings: string[] = JSON.parse(logsData);
+        allStrings.push(...strings);
+      }
+    }
+    if (allStrings.length === 0) {
+      console.log('No logs for today, skipping report.');
+      res.json({ status: 'success', message: 'No data to report' });
+      return;
+    }
+    const fragmentation = calculateFragmentation(allStrings);
+    // Find most common reality
+    const countMap = new Map<string, number>();
+    for (const str of allStrings) {
+      countMap.set(str, (countMap.get(str) || 0) + 1);
+    }
+    let consensus = '';
+    let maxCount = 0;
+    for (const [str, count] of countMap) {
+      if (count > maxCount) {
+        maxCount = count;
+        consensus = str;
+      }
+    }
+    const title = `Daily Reality Report: ${date}`;
+    const body = `The multiverse stabilized at index ${fragmentation.toFixed(2)}! Consensus: ${consensus}. 🌌 Reality fragments are aligning nicely today!`;
+    // Posting daily report to the multiverse.
+    await reddit.submitPost({
+      subredditName: 'conrealmonitor_dev',
+      title,
+      text: body,
+    });
+    console.log('Daily report posted successfully.');
+    res.json({ status: 'success' });
+  } catch (error) {
+    console.error('Report lost in hyperspace.', error);
+    res.status(500).json({ status: 'error', message: 'Failed to generate report' });
+  }
+});
+
+router.get('/internal/reports', async (_req, res): Promise<void> => {
+  try {
+    // Fetching reports from the multiverse timeline.
+    const posts = await reddit.getPosts('conrealmonitor_dev', {
+      query: 'title:"Daily Reality Report"',
+      sort: 'new',
+      limit: 50,
+    });
+    res.json({ status: 'success', reports: posts });
+  } catch (error) {
+    console.error('Failed to fetch reports', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch reports' });
   }
 });
 

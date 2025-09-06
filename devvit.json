@@ -28,6 +28,13 @@
   "triggers": {
     "onAppInstall": "/internal/on-app-install"
   },
+  "schedulers": [
+    {
+      "name": "dailyReport",
+      "cron": "0 0 * * *",
+      "endpoint": "/internal/daily-report"
+    }
+  ],
   "dev": {
     "subreddit": "conrealmonitor_dev"
   }

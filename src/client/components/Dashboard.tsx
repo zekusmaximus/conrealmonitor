@@ -9,6 +9,12 @@ interface Fragment {
   author: string;
 }
 
+interface Report {
+  title: string;
+  created_utc: number;
+  selftext: string;
+}
+
 const Dashboard: React.FC = () => {
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get('groupId') || localStorage.getItem('groupId') || 'default-group';
@@ -17,6 +23,8 @@ const Dashboard: React.FC = () => {
   const [fragments, setFragments] = useState<Fragment[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [showReports, setShowReports] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,6 +66,29 @@ const Dashboard: React.FC = () => {
       }
     } catch (err) {
       setToast({ message: 'Reality rejected by the matrix!', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewReports = async () => {
+    setLoading(true);
+    try {
+      // Fetching reports from the multiverse timeline.
+      const response = await fetch('/internal/reports');
+      if (!response.ok) {
+        throw new Error('Failed to fetch reports');
+      }
+      const data = await response.json();
+      if (data.status === 'success') {
+        setReports(data.reports);
+        setShowReports(true);
+        setToast({ message: 'Reports accessed from the multiverse!', type: 'success' });
+      } else {
+        throw new Error(data.message || 'Failed to fetch reports');
+      }
+    } catch (err) {
+      setToast({ message: 'Reports lost in a reality rift!', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -122,7 +153,7 @@ const Dashboard: React.FC = () => {
         </div>
 
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <button
             onClick={handleShareGroup}
             disabled={loading}
@@ -138,17 +169,47 @@ const Dashboard: React.FC = () => {
               'Share Group'
             )}
           </button>
+          <button
+            onClick={handleViewReports}
+            disabled={loading}
+            className="px-6 py-3 bg-[var(--accent-color)] text-[var(--primary-bg)] font-orbitron text-lg rounded-lg hover:shadow-[0_0_20px_var(--accent-color)] transition-all duration-300 glow-button disabled:opacity-50"
+            aria-label="View reality reports button"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="spinner mr-2"></div>
+                Fetching...
+              </div>
+            ) : (
+              'View Reports'
+            )}
+          </button>
         </div>
 
         {toast && (
           <div
             className={`mt-8 px-4 py-2 rounded-lg text-center font-orbitron text-lg ${
-              toast.type === 'success' ? 'bg-green-400 text-black' : 'bg-red-400 text-white'
+              toast.type === 'success' ? 'bg-lime-400 text-black' : 'bg-red-500 text-white'
             }`}
             role="alert"
             aria-live="assertive"
           >
             {toast.message}
+          </div>
+        )}
+
+        {showReports && (
+          <div className="mt-8 bg-[var(--primary-bg)] border border-[var(--accent-color)] rounded-lg p-4 glow-card">
+            <h2 className="text-2xl font-orbitron text-[var(--highlight)] mb-4">Daily Reality Reports</h2>
+            <div className="space-y-4">
+              {reports.map((report: Report, index) => (
+                <div key={index} className="bg-[var(--primary-bg)] border border-[var(--accent-color)] rounded-lg p-4 glow-card">
+                  <h3 className="text-xl font-orbitron text-[var(--highlight)]">{report.title}</h3>
+                  <p className="text-sm text-[var(--accent-color)]">{new Date(report.created_utc * 1000).toLocaleDateString()}</p>
+                  <p className="font-roboto-mono mt-2">{report.selftext.slice(0, 200)}...</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
