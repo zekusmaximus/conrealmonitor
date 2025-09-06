@@ -1,5 +1,5 @@
 // Checkpoint: Test with devvit playtest in private sub. Verify D3 visualization rendering and data fetching.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useId } from 'react';
 import * as d3 from 'd3';
 import { GroupData, GroupDataResponse } from '../../shared/types/api';
 
@@ -12,12 +12,116 @@ interface VisualizationProps {
 const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   // Ref for the SVG element to attach D3
   const svgRef = useRef<SVGSVGElement>(null);
+  // Unique ID for tooltip
+  const tooltipId = useId();
 
   // State for fetched data, loading, and error handling
   const [data, setData] = useState<GroupData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fragmentation, setFragmentation] = useState(0);
+
+  // Helper functions for D3 visualization
+  const createConsensusLine = (svg: any, data: GroupData, xScale: d3.ScaleTime<number, number>, yScale: d3.ScaleLinear<number, number>, margin: { top: number; right: number; bottom: number; left: number }) => {
+    const consensusLine = d3.line<GroupData['consensus'][0]>()
+      .x(d => xScale(new Date(d.time)))
+      .y(d => yScale(d.value))
+      .curve(d3.curveMonotoneX);
+
+    const consensusPath = svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`)
+      .append('path')
+      .datum(data.consensus)
+      .attr('fill', 'none')
+      .attr('stroke', 'var(--accent-color)')
+      .attr('stroke-width', 2)
+      .attr('d', consensusLine)
+      .attr('aria-label', 'Consensus reality timeline line');
+
+    const pathLength = consensusPath.node()?.getTotalLength() || 0;
+    consensusPath
+      .attr('stroke-dasharray', pathLength)
+      .attr('stroke-dashoffset', pathLength)
+      .transition()
+      .duration(500)
+      .delay(500)
+      .attr('stroke-dashoffset', 0);
+  };
+
+  const createFragmentBranches = (svg: any, data: GroupData, xScale: d3.ScaleTime<number, number>, branchY: (branch: number) => number, topBranches: number[], margin: { top: number; right: number; bottom: number; left: number }, tooltip: any) => {
+    topBranches.forEach((branch, index) => {
+      const fragments = data.fragments.filter(d => d.branch === branch);
+      const maxUserCount = d3.max(fragments, d => d.userCount) || 1;
+      const thicknessScale = d3.scaleLinear().domain([0, maxUserCount]).range([1, 10]);
+
+      fragments.forEach(fragment => {
+        const g = svg.append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const line = g.append('line')
+          .attr('x1', xScale(new Date(fragment.time)))
+          .attr('y1', branchY(index))
+          .attr('x2', xScale(new Date(fragment.time)))
+          .attr('y2', branchY(index))
+          .attr('stroke', 'var(--highlight)')
+          .attr('stroke-width', thicknessScale(fragment.userCount))
+          .attr('aria-label', `Fragment branch ${index + 1} at ${new Date(fragment.time).toLocaleString()} with ${fragment.userCount} users`)
+          .attr('tabindex', '0');
+
+        line.on('mouseover', function(event: any) {
+          tooltip.classed('visible', true)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 10) + 'px')
+            .text(fragment.id);
+        })
+        .on('mouseout', function() {
+          tooltip.classed('visible', false);
+        })
+        .on('focus', function(this: SVGLineElement) {
+           const rect = this.getBoundingClientRect();
+           tooltip.classed('visible', true)
+             .style('left', (rect.left + rect.width / 2) + 'px')
+             .style('top', (rect.top - 10) + 'px')
+             .text(fragment.id);
+         })
+        .on('blur', function() {
+          tooltip.classed('visible', false);
+        })
+        .on('touchstart', function(event: any) {
+          event.preventDefault();
+          const touch = event.touches[0];
+          tooltip.classed('visible', true)
+            .style('left', (touch.pageX + 10) + 'px')
+            .style('top', (touch.pageY - 10) + 'px')
+            .text(fragment.id);
+        });
+
+        line.transition()
+          .duration(500)
+          .delay(500 + index * 200)
+          .attr('y2', branchY(index) + 20);
+      });
+    });
+
+    d3.select('body').on('touchstart', function(event) {
+      if (!event.target.closest('line')) {
+        tooltip.classed('visible', false);
+      }
+    });
+  };
+
+  const addAxes = (svg: any, xScale: d3.ScaleTime<number, number>, yScale: d3.ScaleLinear<number, number>, margin: { top: number; right: number; bottom: number; left: number }, innerHeight: number) => {
+    const xAxis = d3.axisBottom(xScale);
+    const yAxis = d3.axisLeft(yScale);
+
+    svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top + innerHeight})`)
+      .call(xAxis);
+
+    svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`)
+      .call(yAxis);
+  };
 
   // Fetch data from the API endpoint
   useEffect(() => {
@@ -30,12 +134,15 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
         const groupDataResponse: GroupDataResponse = await response.json();
         // Convert to GroupData for visualization
         const now = new Date().toISOString();
+        const consensusTimestamps = groupDataResponse.consensusTimestamps || [now];
+        const fragmentTimestamps = groupDataResponse.fragmentTimestamps || groupDataResponse.fragmentedRealities.map(() => now);
+        const userCounts = groupDataResponse.userCounts || groupDataResponse.fragmentedRealities.map(() => 1);
         const groupData: GroupData = {
-          consensus: [{ time: now, value: 1 - groupDataResponse.fragmentation }],
-          fragments: groupDataResponse.fragmentedRealities.map((_, index) => ({
-            id: index.toString(),
-            time: now,
-            userCount: 1,
+          consensus: consensusTimestamps.map((time) => ({ time, value: 1 - groupDataResponse.fragmentation })),
+          fragments: groupDataResponse.fragmentedRealities.map((reality, index) => ({
+            id: reality,
+            time: fragmentTimestamps[index] || now,
+            userCount: userCounts[index] || 1,
             branch: index % 3,
           })),
         };
@@ -80,108 +187,17 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
     const branchTotals = d3.rollup(data.fragments, v => d3.sum(v, d => d.userCount), d => d.branch);
     const topBranches = Array.from(branchTotals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(d => d[0]);
 
-    // Draw central line for consensus reality with animation
-    const consensusLine = d3.line<GroupData['consensus'][0]>()
-      .x(d => xScale(new Date(d.time)))
-      .y(d => yScale(d.value))
-      .curve(d3.curveMonotoneX);
+    // Tooltip selection
+    const tooltip = d3.select(`#${tooltipId}`);
 
-    const consensusPath = svg.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`)
-      .append('path')
-      .datum(data.consensus)
-      .attr('fill', 'none')
-      .attr('stroke', 'var(--accent-color)')
-      .attr('stroke-width', 2)
-      .attr('d', consensusLine)
-      .attr('aria-label', 'Consensus reality timeline line');
+    // Draw consensus line
+    createConsensusLine(svg, data, xScale, yScale, margin);
 
-    // Animate consensus path drawing
-    const pathLength = consensusPath.node()?.getTotalLength() || 0;
-    consensusPath
-      .attr('stroke-dasharray', pathLength)
-      .attr('stroke-dashoffset', pathLength)
-      .transition()
-      .duration(500)
-      .delay(500)
-      .attr('stroke-dashoffset', 0);
-
-    // Draw fragment branches with growth animations
-    topBranches.forEach((branch, index) => {
-      const fragments = data.fragments.filter(d => d.branch === branch);
-      const maxUserCount = d3.max(fragments, d => d.userCount) || 1;
-      const thicknessScale = d3.scaleLinear().domain([0, maxUserCount]).range([1, 10]);
-
-      fragments.forEach(fragment => {
-        const g = svg.append('g')
-          .attr('transform', `translate(${margin.left},${margin.top})`);
-
-        const line = g.append('line')
-           .attr('x1', xScale(new Date(fragment.time)))
-           .attr('y1', branchY(index))
-           .attr('x2', xScale(new Date(fragment.time)))
-           .attr('y2', branchY(index)) // Start at same Y for growth animation
-           .attr('stroke', 'var(--highlight)')
-           .attr('stroke-width', thicknessScale(fragment.userCount))
-           .attr('aria-label', `Fragment branch ${index + 1} at ${new Date(fragment.time).toLocaleString()} with ${fragment.userCount} users`)
-           .attr('tabindex', '0');
-
-        // Add hover, touch, and keyboard tooltip
-        const tooltip = d3.select('#tooltip');
-        line.on('mouseover', function(event) {
-             tooltip.classed('visible', true)
-               .style('left', (event.pageX + 10) + 'px')
-               .style('top', (event.pageY - 10) + 'px')
-               .text(fragment.id);
-           })
-           .on('mouseout', function() {
-             tooltip.classed('visible', false);
-           })
-           .on('focus', function() {
-             const rect = this.getBoundingClientRect();
-             tooltip.classed('visible', true)
-               .style('left', (rect.left + rect.width / 2) + 'px')
-               .style('top', (rect.top - 10) + 'px')
-               .text(fragment.id);
-           })
-           .on('blur', function() {
-             tooltip.classed('visible', false);
-           })
-           .on('touchstart', function(event) {
-             event.preventDefault();
-             const touch = event.touches[0];
-             tooltip.classed('visible', true)
-               .style('left', (touch.pageX + 10) + 'px')
-               .style('top', (touch.pageY - 10) + 'px')
-               .text(fragment.id);
-           });
-
-        // Hide tooltip on touch outside
-        d3.select('body').on('touchstart', function(event) {
-          if (!event.target.closest('line')) {
-            tooltip.classed('visible', false);
-          }
-        });
-
-        // Animate branch growth through the reality matrix
-        line.transition()
-           .duration(500)
-           .delay(500 + index * 200) // Staggered delay for each branch
-           .attr('y2', branchY(index) + 20);
-      });
-    });
+    // Draw fragment branches
+    createFragmentBranches(svg, data, xScale, branchY, topBranches, margin, tooltip);
 
     // Add axes
-    const xAxis = d3.axisBottom(xScale);
-    const yAxis = d3.axisLeft(yScale);
-
-    svg.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top + innerHeight})`)
-      .call(xAxis);
-
-    svg.append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`)
-      .call(yAxis);
+    addAxes(svg, xScale, yScale, margin, innerHeight);
 
   }, [data]);
 
@@ -217,7 +233,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
           10%, 30%, 50%, 70%, 90% { transform: translateX(-1px); }
           20%, 40%, 60%, 80% { transform: translateX(1px); }
         }
-        #tooltip {
+        #${tooltipId} {
           position: absolute;
           background: var(--primary-bg);
           border: 2px solid var(--accent-color);
@@ -231,12 +247,12 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
           max-width: 200px;
           word-wrap: break-word;
         }
-        #tooltip.visible {
+        #${tooltipId}.visible {
           opacity: 1;
         }
       `}</style>
       <div className={`scanlines ${fragmentation > 0.8 ? 'glitch' : ''}`} style={{ width: '100%', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
-        <div id="tooltip"></div>
+        <div id={tooltipId}></div>
         <svg
           ref={svgRef}
           width="100%"

@@ -1,21 +1,21 @@
-export type InitResponse = {
+export interface InitResponse {
   type: 'init';
   postId: string;
   count: number;
   username: string;
-};
+}
 
-export type IncrementResponse = {
+export interface IncrementResponse {
   type: 'increment';
   postId: string;
   count: number;
-};
+}
 
-export type DecrementResponse = {
+export interface DecrementResponse {
   type: 'decrement';
   postId: string;
   count: number;
-};
+}
 
 export interface ConsensusPoint {
   time: string; // ISO date string
@@ -41,4 +41,7 @@ export interface GroupDataResponse {
   consensusRealityText: string;
   fragmentedRealities: string[];
   stringCount: number;
+  consensusTimestamps?: string[];
+  fragmentTimestamps?: string[];
+  userCounts?: number[];
 }

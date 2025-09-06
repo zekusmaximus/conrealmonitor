@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import type { InitResponse, IncrementResponse, DecrementResponse } from '../../shared/types/api';
 
 interface CounterState {
   count: number;
   username: string | null;
   loading: boolean;
+  error: string | null;
 }
 
 export const useCounter = () => {
@@ -12,8 +14,10 @@ export const useCounter = () => {
     count: 0,
     username: null,
     loading: true,
+    error: null,
   });
   const [postId, setPostId] = useState<string | null>(null);
+  const debounceTimeout = useRef<any>(null);
 
   // fetch initial data with retry logic
   useEffect(() => {
@@ -39,13 +43,15 @@ export const useCounter = () => {
           }
           const data: InitResponse = await res.json();
           if (data.type !== 'init') throw new Error('Unexpected response');
-          setState({ count: data.count, username: data.username, loading: false });
+          setState({ count: data.count, username: data.username, loading: false, error: null });
           setPostId(data.postId);
           return; // Success, exit
         } catch (err) {
           if (retries >= maxRetries) {
             console.error('Failed to init counter after retries', err);
-            setState((prev) => ({ ...prev, loading: false }));
+            const errorMessage = err instanceof Error ? err.message : 'Failed to init counter';
+            setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+            toast.error(errorMessage);
             return;
           }
           retries++;
@@ -85,11 +91,14 @@ export const useCounter = () => {
             throw new Error(`HTTP ${res.status}`);
           }
           const data: IncrementResponse | DecrementResponse = await res.json();
-          setState((prev) => ({ ...prev, count: data.count }));
+          setState((prev) => ({ ...prev, count: data.count, error: null }));
           return; // Success, exit
         } catch (err) {
           if (retries >= maxRetries) {
             console.error(`Failed to ${action} after retries`, err);
+            const errorMessage = err instanceof Error ? err.message : `Failed to ${action}`;
+            setState((prev) => ({ ...prev, error: errorMessage }));
+            toast.error(errorMessage);
             return;
           }
           retries++;
@@ -99,8 +108,14 @@ export const useCounter = () => {
     [postId]
   );
 
-  const increment = useCallback(() => update('increment'), [update]);
-  const decrement = useCallback(() => update('decrement'), [update]);
+  const increment = useCallback(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => update('increment'), 500);
+  }, [update]);
+  const decrement = useCallback(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => update('decrement'), 500);
+  }, [update]);
 
   return {
     ...state,

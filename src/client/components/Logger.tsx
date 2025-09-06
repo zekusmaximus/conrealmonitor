@@ -21,6 +21,10 @@ const Logger: React.FC = () => {
     setLoading(true);
     try {
       const groupId = localStorage.getItem('groupId');
+      if (!groupId) {
+        toast.error('No group ID found. Please join or create a group first.');
+        return;
+      }
       const response = await fetch('/internal/logs', {
         method: 'POST',
         headers: {

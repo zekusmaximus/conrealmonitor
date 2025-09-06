@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const Welcome: React.FC = () => {
       if (!response.ok) throw new Error('Failed to create group');
       const data = await response.json();
       if (data.status === 'success') {
-        alert(data.alert);
+        toast.success(data.alert);
         localStorage.setItem('groupId', data.uuid);
       } else {
         throw new Error(data.message || 'Failed to create group');
@@ -41,6 +42,7 @@ const Welcome: React.FC = () => {
       setError('Invalid UUID format.');
       return;
     }
+    localStorage.setItem('groupId', joinCode);
     void navigate('/logger');
   };
 

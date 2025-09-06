@@ -32,6 +32,51 @@ A starter to build web applications on Reddit's developer platform
 - **Sentry Rate Limiting**: If errors occur frequently, Sentry may return 429 errors. The app includes retry logic to handle this.
 - **Devvit Gateway Errors**: Occasional 400 errors from the Devvit gateway may occur due to network issues or server load.
 
+## Architecture
+
+This project follows a modular architecture with three main components:
+
+- **Client**: React-based frontend built with Vite, using Tailwind CSS for styling. Handles user interactions and displays data visualizations.
+- **Server**: Express.js backend that processes API requests, manages data, and serves the client build.
+- **Shared**: Common TypeScript types and utilities shared between client and server for type safety and consistency.
+
+The architecture supports Reddit's Devvit platform, allowing seamless integration with Reddit's ecosystem.
+
+## File Structure
+
+```
+src/
+├── client/          # React frontend
+│   ├── components/  # Reusable UI components
+│   ├── hooks/       # Custom React hooks
+│   ├── styles/      # CSS and styling files
+│   ├── public/      # Static assets
+│   └── vite.config.ts
+├── server/          # Express backend
+│   ├── core/        # Core business logic
+│   ├── __tests__/   # Server-side tests
+│   └── vite.config.ts
+└── shared/          # Shared types and utilities
+    └── types/       # TypeScript type definitions
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature-name`
+3. Make your changes and ensure tests pass: `npm run check`
+4. Commit your changes: `git commit -am 'Add some feature'`
+5. Push to the branch: `git push origin feature/your-feature-name`
+6. Submit a pull request
+
+### Development Guidelines
+
+- Follow TypeScript best practices and maintain type safety
+- Write tests for new features
+- Ensure code passes linting and formatting checks
+- Update documentation for any API changes
+- Use conventional commit messages
+
 ## Cursor Integration
 
 This template comes with a pre-configured cursor environment. To get started, [download cursor](https://www.cursor.com/downloads) and enable the `devvit-mcp` when prompted.

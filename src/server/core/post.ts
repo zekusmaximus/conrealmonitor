@@ -6,11 +6,9 @@ export const createPost = async () => {
     throw new Error('subredditName is required');
   }
 
-  return await reddit.submitCustomPost({
-    splash: {
-      appDisplayName: 'conrealmonitor',
-    },
+  return await reddit.submitPost({
     subredditName: subredditName,
-    title: 'conrealmonitor',
+    title: `conrealmonitor - ${new Date().toISOString()}`,
+    text: 'Monitoring reality fragments',
   });
 };

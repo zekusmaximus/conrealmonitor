@@ -1,11 +1,10 @@
-import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
-export default defineConfig([
+export default [
   tseslint.configs.recommended,
   { ignores: ['webroot'] },
   {
@@ -86,7 +85,6 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    plugins: { js },
     extends: ['js/recommended'],
   },
 ]);

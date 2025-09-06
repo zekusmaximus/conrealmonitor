@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import { builtinModules } from 'node:module';
 
 export default defineConfig({
   ssr: {
@@ -9,11 +8,9 @@ export default defineConfig({
     emptyOutDir: false,
     ssr: 'index.ts',
     outDir: '../../dist/server',
-    target: 'node22',
+    target: 'es2015',
     sourcemap: true,
     rollupOptions: {
-      external: [...builtinModules],
-
       output: {
         format: 'cjs',
         entryFileNames: 'index.cjs',

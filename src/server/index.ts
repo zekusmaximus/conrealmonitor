@@ -16,8 +16,9 @@ export function calculateFragmentation(strings: string[]): number {
   }
   let totalSimilarity = 0;
   let pairs = 0;
+  // Optimize by sampling pairs: compare each to next 5 instead of all pairs
   for (let i = 0; i < validStrings.length; i++) {
-    for (let j = i + 1; j < validStrings.length; j++) {
+    for (let j = i + 1; j < Math.min(i + 6, validStrings.length); j++) {
       const similarity = compareTwoStrings(validStrings[i]!, validStrings[j]!);
       totalSimilarity += similarity;
       pairs++;
@@ -80,15 +81,13 @@ const app = express();
 app.use(express.json());
 // Middleware for URL-encoded body parsing
 app.use(express.urlencoded({ extended: true }));
-// Middleware for plain text body parsing
-app.use(express.text());
 
 const router = express.Router();
 
 router.get<{ postId: string }, InitResponse | { status: string; message: string }>(
   '/api/init',
-  async (_req, res): Promise<void> => {
-    const { postId } = context;
+  async (req, res): Promise<void> => {
+    const postId = context.postId || req.params.postId;
 
     if (!postId) {
       console.error('API Init Error: postId not found in devvit context');
@@ -294,8 +293,19 @@ router.get('/internal/group-data/:groupId', async (req, res): Promise<void> => {
     console.log(`📊 Calculating fragmentation for ${strings.length} strings`);
     const fragmentation = calculateFragmentation(strings);
     console.log('✅ Fragmentation calculated successfully');
-    // Determine consensus reality text (most frequent string or first)
-    const consensusRealityText = strings.length > 0 ? strings[0] : '';
+    // Determine consensus reality text (most frequent string)
+    const countMap = new Map<string, number>();
+    for (const str of strings) {
+      countMap.set(str, (countMap.get(str) || 0) + 1);
+    }
+    let consensusRealityText = '';
+    let maxCount = 0;
+    for (const [str, count] of countMap) {
+      if (count > maxCount) {
+        maxCount = count;
+        consensusRealityText = str;
+      }
+    }
     // Fragmented realities: up to 3 strings
     const fragmentedRealities = strings.slice(0, 3);
     res.json({
@@ -409,11 +419,7 @@ router.post('/internal/daily-report', async (_req, res): Promise<void> => {
 router.get('/internal/reports', async (_req, res): Promise<void> => {
   try {
     // Fetching reports from the multiverse timeline.
-    const posts = await reddit.getPosts('conrealmonitor_dev', {
-      query: 'title:"Daily Reality Report"',
-      sort: 'new',
-      limit: 50,
-    });
+    const posts = await reddit.getHotPosts({ subredditName: 'conrealmonitor_dev', limit: 50 });
     res.json({ status: 'success', reports: posts });
   } catch (error) {
     console.error('Failed to fetch reports', error);

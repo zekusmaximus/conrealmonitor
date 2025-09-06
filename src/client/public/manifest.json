@@ -1,6 +1,6 @@
 {
   "name": "Consensus Reality Monitor",
-  "short_name": "CRM-1970",
+  "short_name": "Consensus Reality Monitor",
   "description": "Monitor and analyze consensus realities",
   "start_url": "/",
   "display": "standalone",

@@ -15,7 +15,7 @@ interface Report {
   selftext: string;
 }
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC = React.memo(() => {
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get('groupId') || localStorage.getItem('groupId') || 'default-group';
   const [fragmentationIndex, setFragmentationIndex] = useState<number | null>(null);
@@ -215,7 +215,6 @@ const Dashboard: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
-// Checkpoint: Verify flair updates in subreddit.
 export default Dashboard;

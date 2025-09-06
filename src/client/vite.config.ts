@@ -8,12 +8,18 @@ export default defineConfig({
   build: {
     outDir: '../../dist/client',
     sourcemap: true,
+    minify: 'terser',
     rollupOptions: {
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name][extname]',
         sourcemapFileNames: '[name].js.map',
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
       },
     },
   },
