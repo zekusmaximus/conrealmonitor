@@ -14,6 +14,8 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   // Unique ID for tooltip
   const tooltipId = useId();
+  // Ref to store the touchstart handler for cleanup
+  const touchHandlerRef = useRef<((event: any) => void) | null>(null);
 
   // State for fetched data, loading, and error handling
   const [data, setData] = useState<GroupData | null>(null);
@@ -103,11 +105,13 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
       });
     });
 
-    d3.select('body').on('touchstart', function(event) {
+    const touchHandler = function(event: any) {
       if (!event.target.closest('line')) {
         tooltip.classed('visible', false);
       }
-    });
+    };
+    touchHandlerRef.current = touchHandler;
+    d3.select('body').on('touchstart', touchHandler);
   };
 
   const addAxes = (svg: any, xScale: d3.ScaleTime<number, number>, yScale: d3.ScaleLinear<number, number>, margin: { top: number; right: number; bottom: number; left: number }, innerHeight: number) => {
@@ -161,6 +165,12 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
   useEffect(() => {
     if (!data || !svgRef.current) return;
 
+    // Remove previous touchstart handler if exists
+    if (touchHandlerRef.current) {
+      d3.select('body').on('touchstart', null);
+      touchHandlerRef.current = null;
+    }
+
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove(); // Clear previous render
 
@@ -199,6 +209,13 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
     // Add axes
     addAxes(svg, xScale, yScale, margin, innerHeight);
 
+    // Cleanup function to remove touchstart handler
+    return () => {
+      if (touchHandlerRef.current) {
+        d3.select('body').on('touchstart', null);
+        touchHandlerRef.current = null;
+      }
+    };
   }, [data]);
 
   // Loading and error states

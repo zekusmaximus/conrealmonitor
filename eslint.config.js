@@ -65,6 +65,7 @@ export default [
     },
   },
   {
+    extends: [js.configs.recommended],
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
@@ -85,6 +86,5 @@ export default [
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    extends: ['js/recommended'],
   },
 ]);

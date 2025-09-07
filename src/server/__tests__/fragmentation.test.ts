@@ -1,4 +1,4 @@
-import { calculateFragmentation } from '../index';
+import { calculateFragmentation } from '../calc';
 
 describe('calculateFragmentation', () => {
   it('should return high fragmentation for dissimilar strings', () => {

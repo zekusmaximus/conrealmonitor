@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Import the main components for routing
@@ -10,6 +10,9 @@ import Visualization from './Visualization';
 
 // App component with focus management and Devvit context handling
 const App: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const groupId = searchParams.get('groupId') || localStorage.getItem('groupId') || 'default-group';
+
   useEffect(() => {
     // Handle autofocus conflicts by managing focus events
     const handleFocusIn = (e: FocusEvent) => {
@@ -46,8 +49,8 @@ const App: React.FC = () => {
           <Route path="/logger" element={<Logger />} />
           {/* Route for the Dashboard component */}
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* Route for the Visualization component, passing a default groupId prop */}
-          <Route path="/visualization" element={<Visualization groupId="default-group" />} />
+          {/* Route for the Visualization component, passing a dynamic groupId prop */}
+          <Route path="/visualization" element={<Visualization groupId={groupId} />} />
           {/* Catch-all route for Devvit webview URLs with webbit_token */}
           <Route path="*" element={<Welcome />} />
         </Routes>

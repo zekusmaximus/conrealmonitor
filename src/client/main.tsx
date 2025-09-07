@@ -80,18 +80,6 @@ window.addEventListener('error', (event) => {
   }
 });
 
-// Disable web-share API in webview contexts where it may not be supported
-if (window.navigator && 'share' in window.navigator) {
-  const originalShare = window.navigator.share;
-  window.navigator.share = function(data) {
-    // Check if we're in a webview context that doesn't support web-share
-    if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || !window.location.origin) {
-      console.warn('Web-share API disabled in current context');
-      return Promise.reject(new Error('Web-share API not supported in this context'));
-    }
-    return originalShare.call(this, data);
-  };
-}
 
 // Main application entry point with routing setup
 createRoot(document.getElementById('root')!).render(

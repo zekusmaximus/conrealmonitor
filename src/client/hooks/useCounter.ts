@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import type { InitResponse, IncrementResponse, DecrementResponse } from '../../shared/types/api';
 
 interface CounterState {

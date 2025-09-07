@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "target": "ES2015",
 
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
 
     "rootDir": ".",
 

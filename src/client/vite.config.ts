@@ -8,7 +8,6 @@ export default defineConfig({
   build: {
     outDir: '../../dist/client',
     sourcemap: true,
-    minify: 'terser',
     rollupOptions: {
       output: {
         entryFileNames: '[name].js',
@@ -27,7 +26,7 @@ export default defineConfig({
   server: {
     fs: {
       // Allow serving files from one level up to the project root
-      allow: ['../../']
+      allow: ['../']
     }
   },
   // Prevent Vite from generating service worker
