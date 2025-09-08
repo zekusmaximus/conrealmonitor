@@ -1,2 +1,12 @@
-// Checkpoint: Test with devvit playtest in private sub. Verify server initialization and endpoint responses.
-export { app } from './server';
+import { Devvit } from '@devvit/public-api';
+import { randomUUID } from 'crypto';
+import dayjs from 'dayjs';
+import * as redisService from './services/redis';
+
+Devvit.configure({
+  http: true,
+  redis: true,
+});
+
+
+export { router } from './routes';

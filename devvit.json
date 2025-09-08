@@ -37,5 +37,6 @@
   ],
   "dev": {
     "subreddit": "conrealmonitor_dev"
-  }
+  },
+  "permissions": {"http": {"enable": true}}
 }

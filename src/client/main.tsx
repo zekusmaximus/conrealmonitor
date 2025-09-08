@@ -1,3 +1,43 @@
+// Global error handling for extension context invalidation and orphaned iframe errors
+window.onunhandledrejection = (event) => {
+  console.log('Unhandled promise rejection detected:', event.reason);
+  const reasonStr = typeof event.reason === 'string' ? event.reason : (event.reason && typeof event.reason === 'object' && event.reason.message ? event.reason.message : '');
+  console.log('Reason type:', typeof event.reason, 'Reason string:', reasonStr);
+  if (reasonStr.toLowerCase().includes('extension context invalidated')) {
+    console.warn('Extension context invalidated error caught and handled gracefully:', event.reason);
+    event.preventDefault(); // Prevent the error from propagating and potentially crashing the app
+  }
+  if (reasonStr.toLowerCase().includes('web-share')) {
+    console.warn('Web-share API error caught and handled gracefully:', event.reason);
+    event.preventDefault();
+  }
+  if (reasonStr.toLowerCase().includes('orphaned iframed')) {
+    console.warn('Orphaned iframed error caught and handled gracefully:', event.reason);
+    event.preventDefault();
+  }
+};
+
+// Also handle general uncaught errors that might be related
+window.onerror = (message, source, lineno, colno, error) => {
+  console.log('Uncaught error detected:', message);
+  const messageStr = typeof message === 'string' ? message : String(message);
+  console.log('Error message:', messageStr);
+  if (messageStr.toLowerCase().includes('extension context invalidated')) {
+    console.warn('Extension context invalidated error caught and handled gracefully:', message);
+    return true; // Prevent default error handling
+  }
+  if (messageStr.toLowerCase().includes('web-share')) {
+    console.warn('Web-share API error caught and handled gracefully:', message);
+    return true;
+  }
+  if (messageStr.toLowerCase().includes('orphaned iframed')) {
+    console.warn('Orphaned iframed error caught and handled gracefully:', message);
+    return true;
+  }
+  // For other errors, allow default handling
+  return false;
+};
+
 // Checkpoint: Test with devvit playtest in private sub. Verify client-side routing and component rendering.
 import './index.css';
 import './styles/global.css';
@@ -16,6 +56,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './components/App';
 
 
@@ -42,48 +83,27 @@ window.addEventListener('appinstalled', () => {
 // Function to trigger the install prompt
 window.installPWA = () => {
   if (deferredPrompt) {
+    console.log('Triggering PWA install prompt');
     void deferredPrompt.prompt();
     void deferredPrompt.userChoice.then((choiceResult) => {
+      console.log('PWA install prompt choice:', choiceResult.outcome);
       if (choiceResult.outcome === 'accepted') {
         console.log('User accepted the install prompt');
       } else {
         console.log('User dismissed the install prompt');
       }
       deferredPrompt = null;
+    }).catch((error) => {
+      console.error('PWA install prompt error:', error);
     });
   }
 };
 
-// Global error handling for extension context invalidation
-window.addEventListener('unhandledrejection', (event) => {
-  if (event.reason && typeof event.reason === 'object' && event.reason.message && event.reason.message.includes('Extension context invalidated')) {
-    console.warn('Extension context invalidated error caught and handled gracefully:', event.reason);
-    event.preventDefault(); // Prevent the error from propagating and potentially crashing the app
-  }
-  // Handle web-share origin errors
-  if (event.reason && typeof event.reason === 'object' && event.reason.message && event.reason.message.includes('web-share')) {
-    console.warn('Web-share API error caught and handled gracefully:', event.reason);
-    event.preventDefault();
-  }
-});
-
-// Also handle general uncaught errors that might be related
-window.addEventListener('error', (event) => {
-  if (event.message && event.message.includes('Extension context invalidated')) {
-    console.warn('Extension context invalidated error caught and handled gracefully:', event.message);
-    event.preventDefault();
-  }
-  // Handle web-share origin errors
-  if (event.message && event.message.includes('web-share')) {
-    console.warn('Web-share API error caught and handled gracefully:', event.message);
-    event.preventDefault();
-  }
-});
-
-
 // Main application entry point with routing setup
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <BrowserRouter basename="/">
+      <App />
+    </BrowserRouter>
   </StrictMode>
 );

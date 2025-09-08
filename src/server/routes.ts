@@ -60,28 +60,37 @@ const router = express.Router();
 // Authentication middleware
 const authMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
+    console.log('Auth middleware: Checking token presence');
     // Check for Devvit origin via signed header
     const devvitToken = req.headers['x-devvit-token'];
     if (!devvitToken) {
+      console.log('Auth middleware: Token missing');
       return res.status(401).json({ error: 'Unauthorized: Missing Devvit token' });
     }
+    console.log('Auth middleware: Token present');
     // TODO: Verify token signature (implement actual verification)
     const username = await redditService.getCurrentUsername();
+    console.log('Auth middleware: Username retrieved:', username);
     if (!username) {
+      console.log('Auth middleware: No user found');
       return res.status(401).json({ error: 'Unauthorized: No user' });
     }
     const subreddit = redditService.getSubredditName() || 'conrealmonitor_dev';
     const moderators = await redditService.getModerators(subreddit);
     let isMod = false;
+    console.log('Auth middleware: Checking moderator status for user:', username);
     for await (const mod of moderators) {
       if (mod.username === username) {
         isMod = true;
         break;
       }
     }
+    console.log('Auth middleware: User is moderator:', isMod);
     if (!isMod) {
+      console.log('Auth middleware: Access denied - not a moderator');
       return res.status(403).json({ error: 'Forbidden: Moderator access required' });
     }
+    console.log('Auth middleware: Authentication successful');
     next();
   } catch (error) {
     console.error('Auth error:', error);
@@ -210,10 +219,11 @@ router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
 });
 
 router.post('/internal/groups', async (req, res): Promise<void> => {
+  console.log('Received POST to /internal/groups');
   try {
     const { strings } = req.body;
     if (!Array.isArray(strings)) {
-      console.error('🚫 Invalid request: strings array required');
+      console.error('Invalid request: strings array required');
       res.status(400).json({
         status: 'error',
         message: 'strings array is required',
@@ -222,18 +232,18 @@ router.post('/internal/groups', async (req, res): Promise<void> => {
     }
     const groupId = randomUUID();
     const date = dayjs().toISOString().split('T')[0]!;
-    console.log(`📝 Creating new group ${groupId} with ${strings.length} strings`);
+    console.log(`Creating new group ${groupId} with ${strings.length} strings`);
     await redisService.setLogs(groupId, date, strings);
     await redisService.addDateToGroup(groupId, date);
     await redisService.addGroup(groupId);
-    console.log('✅ Group stored successfully');
+    console.log('Group stored successfully');
     res.json({
       status: 'success',
       uuid: groupId,
       alert: `New group created with UUID: ${groupId}`,
     });
   } catch (error) {
-    console.error(`💥 Error storing group: ${error}`);
+    console.error(`Error storing group: ${error}`);
     res.status(500).json({
       status: 'error',
       message: 'Failed to store group',

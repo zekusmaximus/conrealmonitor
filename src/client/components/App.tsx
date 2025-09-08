@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
+import { Routes, Route, useSearchParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Import the main components for routing
@@ -38,7 +38,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <BrowserRouter basename="/">
+    <>
       <div className="logo">CRM-1970</div>
       <div className="app-container" style={{ background: 'linear-gradient(135deg, var(--primary-bg), var(--highlight))', minHeight: '100vh' }}>
         {/* Define routes for different components */}
@@ -56,7 +56,7 @@ const App: React.FC = () => {
         </Routes>
         <Toaster />
       </div>
-    </BrowserRouter>
+    </>
   );
 };
 

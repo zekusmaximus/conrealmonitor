@@ -1,5 +1,5 @@
 import { createServer, getServerPort } from '@devvit/web/server';
-import { app } from './index';
+import { app } from './server';
 
 // Get port from environment variable with fallback
 const port = getServerPort();

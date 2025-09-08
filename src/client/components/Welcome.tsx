@@ -1,34 +1,43 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
 
   const handleCreateGroup = async () => {
+    console.log('Starting group creation');
     setLoading(true);
     setError(null);
     try {
+      console.log('Fetching /internal/groups');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const response = await fetch('/internal/groups', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ strings: [] }),
       });
+      console.log('Fetch response received:', response.status);
       if (!response.ok) throw new Error('Failed to create group');
       const data = await response.json();
+      console.log('Response data:', data);
       if (data.status === 'success') {
         toast.success(data.alert);
         localStorage.setItem('groupId', data.uuid);
+        console.log('Group created successfully');
       } else {
         throw new Error(data.message || 'Failed to create group');
       }
     } catch (err) {
+      console.error('Error in handleCreateGroup:', err);
       setError('Failed to create group. Please try again.');
     } finally {
       setLoading(false);
+      console.log('Group creation process finished');
     }
   };
 
