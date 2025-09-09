@@ -11,32 +11,27 @@ const Welcome: React.FC = () => {
 
   const handleCreateGroup = async () => {
     console.log('Starting group creation');
-    setLoading(true);
-    setError(null);
+    console.log('Fetching /internal/groups');
+
     try {
-      console.log('Fetching /internal/groups');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const response = await fetch('/internal/groups', {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ strings: [] }),
+        headers: { 'Content-Type': 'application/json' },  // Only if sending body data
+        // body: JSON.stringify({})  // Add if needed; empty for now
       });
+
       console.log('Fetch response received:', response.status);
-      if (!response.ok) throw new Error('Failed to create group');
-      const data = await response.json();
-      console.log('Response data:', data);
-      if (data.status === 'success') {
-        toast.success(data.alert);
-        localStorage.setItem('groupId', data.uuid);
-        console.log('Group created successfully');
-      } else {
-        throw new Error(data.message || 'Failed to create group');
+
+      if (!response.ok) {
+        throw new Error(`Failed to create group: ${response.status}`);
       }
-    } catch (err) {
-      console.error('Error in handleCreateGroup:', err);
-      setError('Failed to create group. Please try again.');
+
+      const data = await response.json();
+      console.log('Group created:', data.groupId);
+      // e.g., set state or navigate
+    } catch (error) {
+      console.error('Error in handleCreateGroup:', error);
     } finally {
-      setLoading(false);
       console.log('Group creation process finished');
     }
   };

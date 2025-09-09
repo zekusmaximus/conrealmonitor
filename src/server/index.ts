@@ -1,12 +1,71 @@
 import { Devvit } from '@devvit/public-api';
-import { randomUUID } from 'crypto';
-import dayjs from 'dayjs';
-import * as redisService from './services/redis';
+import express from 'express';
+import { createServer, getServerPort, context } from '@devvit/server';
+import dayjs from 'dayjs';  // For date handling
+import crypto from 'crypto';  // For UUID
+
+console.log('Configuring Devvit...');
 
 Devvit.configure({
-  http: true,
-  redis: true,
+  http: true,  // Required to enable custom endpoints
+  redis: true   // For storage
 });
 
+// Create Express app
+const app = express();
 
-export { router } from './routes';
+console.log('Express app created');
+
+// Middleware for JSON body parsing (if needed for POSTs)
+app.use(express.json());
+
+console.log('Defining POST /internal/groups route');
+
+// POST /internal/groups: Create group with UUID
+app.post('/internal/groups', async (req, res) => {
+  console.log('Groups endpoint hit');
+  try {
+    const groupId = crypto.randomUUID();
+    await context.redis.set(`group:${groupId}`, 'active');  // Store in Redis
+    res.status(200).json({ groupId });
+  } catch (error) {
+    console.error('Failed to create group:', error);
+    res.status(500).json({ error: 'Failed to create group' });
+  }
+});
+
+console.log('Defining POST /internal/logs route');
+
+// POST /internal/logs: Log a reality
+app.post('/internal/logs', async (req, res) => {
+  console.log('Logs endpoint hit');
+  const { userId, groupId, reality } = req.body;
+  try {
+    if (!userId || !groupId || !reality) {
+      return res.status(400).json({ error: 'Invalid log' });
+    }
+    const date = dayjs().toISOString().split('T')[0];
+    await context.redis.lpush(`logs:${groupId}:${date}`, JSON.stringify({ userId, reality }));  // Append to list
+    res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    console.error('Failed to log reality:', error);
+    res.status(500).json({ error: 'Invalid log' });
+  }
+});
+
+console.log('Defining GET /internal/ping route');
+
+app.get('/internal/ping', (req, res) => {
+  console.log('Ping endpoint hit');
+  res.status(200).json({ status: 'ok' });
+});
+
+// Add other endpoints as needed (e.g., GET /internal/group-data/:groupId)
+
+// Create and start the server
+const server = createServer(app);
+server.listen(getServerPort(), () => {
+  console.log(`Server listening on port ${getServerPort()}`);
+});
+
+export default Devvit;

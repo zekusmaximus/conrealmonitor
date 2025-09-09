@@ -1,42 +1,5 @@
 {
-  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "conrealmonitor",
-  "post": {
-    "dir": "dist/client",
-    "entrypoints": {
-      "default": {
-        "entry": "index.html"
-      }
-    }
-  },
-  "server": {
-    "dir": "dist/server",
-    "entry": "index.cjs"
-  },
-  "media": {},
-  "menu": {
-    "items": [
-      {
-        "label": "Create a new post",
-        "description": "conrealmonitor",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/menu/post-create"
-      }
-    ]
-  },
-  "triggers": {
-    "onAppInstall": "/internal/on-app-install"
-  },
-  "schedulers": [
-    {
-      "name": "dailyReport",
-      "cron": "0 0 * * *",
-      "endpoint": "/internal/daily-report"
-    }
-  ],
-  "dev": {
-    "subreddit": "conrealmonitor_dev"
-  },
-  "permissions": {"http": {"enable": true}}
+  "name": "consensus-reality",
+  "version": "0.1.0",
+  "server": { "entry": "dist/server/index.cjs" }
 }
