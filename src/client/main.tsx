@@ -18,7 +18,7 @@ window.onunhandledrejection = (event) => {
 };
 
 // Also handle general uncaught errors that might be related
-window.onerror = (message, source, lineno, colno, error) => {
+window.onerror = (message) => {
   console.log('Uncaught error detected:', message);
   const messageStr = typeof message === 'string' ? message : String(message);
   console.log('Error message:', messageStr);

@@ -1,6 +1,7 @@
 import { Devvit } from '@devvit/public-api';
 import express from 'express';
-import { createServer, getServerPort, context } from '@devvit/server';
+import { createServer, getServerPort } from '@devvit/server';
+import { redis } from '@devvit/web/server';
 import dayjs from 'dayjs';  // For date handling
 import crypto from 'crypto';  // For UUID
 
@@ -22,11 +23,11 @@ app.use(express.json());
 console.log('Defining POST /internal/groups route');
 
 // POST /internal/groups: Create group with UUID
-app.post('/internal/groups', async (req, res) => {
+app.post('/internal/groups', async (_req, res) => {
   console.log('Groups endpoint hit');
   try {
     const groupId = crypto.randomUUID();
-    await context.redis.set(`group:${groupId}`, 'active');  // Store in Redis
+    await redis.set(`group:${groupId}`, 'active');  // Store in Redis
     res.status(200).json({ groupId });
   } catch (error) {
     console.error('Failed to create group:', error);
@@ -37,15 +38,15 @@ app.post('/internal/groups', async (req, res) => {
 console.log('Defining POST /internal/logs route');
 
 // POST /internal/logs: Log a reality
-app.post('/internal/logs', async (req, res) => {
+app.post('/internal/logs', async (_req, res) => {
   console.log('Logs endpoint hit');
-  const { userId, groupId, reality } = req.body;
+  const { userId, groupId, reality } = _req.body;
   try {
     if (!userId || !groupId || !reality) {
       return res.status(400).json({ error: 'Invalid log' });
     }
     const date = dayjs().toISOString().split('T')[0];
-    await context.redis.lpush(`logs:${groupId}:${date}`, JSON.stringify({ userId, reality }));  // Append to list
+    await redis.lpush(`logs:${groupId}:${date}`, JSON.stringify({ userId, reality }));  // Append to list
     res.status(200).json({ status: 'ok' });
   } catch (error) {
     console.error('Failed to log reality:', error);
@@ -55,7 +56,7 @@ app.post('/internal/logs', async (req, res) => {
 
 console.log('Defining GET /internal/ping route');
 
-app.get('/internal/ping', (req, res) => {
+app.get('/internal/ping', (_req, res) => {
   console.log('Ping endpoint hit');
   res.status(200).json({ status: 'ok' });
 });

@@ -216,7 +216,7 @@ const Visualization: React.FC<VisualizationProps> = ({ groupId }) => {
         touchHandlerRef.current = null;
       }
     };
-  }, [data]);
+  }, [data, tooltipId]);
 
   // Loading and error states
   if (loading) {
