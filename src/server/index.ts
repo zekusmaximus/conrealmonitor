@@ -7,6 +7,15 @@ import crypto from 'crypto';  // For UUID
 
 console.log('Configuring Devvit...');
 
+// Diagnostic logs for debugging
+console.log('Redis methods:', Object.getOwnPropertyNames(redis));
+console.log('Devvit properties:', Object.getOwnPropertyNames(Devvit));
+try {
+  console.log('Devvit.Blocks properties:', Object.getOwnPropertyNames((Devvit as any).Blocks));
+} catch (e) {
+  console.log('Devvit.Blocks is not accessible:', String(e));
+}
+
 Devvit.configure({
   http: true,  // Required to enable custom endpoints
   redis: true   // For storage
