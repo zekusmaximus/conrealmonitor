@@ -1,5 +1,8 @@
 {
-  "name": "consensus-reality",
+  "name": "conrealmonitor",
   "version": "0.1.0",
-  "server": { "entry": "dist/server/index.cjs" }
+  "server": {
+    "dir": "dist",
+    "entry": "server/index.cjs"
+  }
 }

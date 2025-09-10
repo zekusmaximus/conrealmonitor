@@ -63,6 +63,18 @@ app.get('/internal/ping', (_req, res) => {
 
 // Add other endpoints as needed (e.g., GET /internal/group-data/:groupId)
 
+// Define custom post type for rendering the app
+console.log('Adding custom post type RenderPostContent');
+Devvit.addCustomPostType({
+  name: 'RenderPostContent',
+  render: () => {
+    return Devvit.Blocks.WebView({
+      url: 'index.html',
+      height: 'tall'
+    });
+  }
+});
+
 // Create and start the server
 const server = createServer(app);
 server.listen(getServerPort(), () => {

@@ -1,21 +1,25 @@
 import { defineConfig } from 'vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-  ssr: {
-    noExternal: true,
-  },
-  build: {
-    emptyOutDir: false,
-    ssr: 'index.ts',
-    outDir: '../../dist/server',
-    target: 'es2015',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        format: 'cjs',
-        entryFileNames: 'index.cjs',
-        inlineDynamicImports: true,
-      },
+  plugins: [nodePolyfills({
+    globals: {
+      Buffer: true,
+      global: true,
+      process: true,
     },
-  },
+    protocolImports: true,
+  })],
+  build: {
+    target: 'node16',
+    ssr: true,
+    outDir: '../../dist/server',
+    emptyOutDir: true,
+    lib: {
+      entry: 'index.ts',
+      formats: ['cjs'],
+      fileName: 'index'
+    },
+    minify: false
+  }
 });
